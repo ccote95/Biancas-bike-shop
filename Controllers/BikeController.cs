@@ -20,19 +20,43 @@ public class BikeController : ControllerBase
 
     [HttpGet]
     [Authorize]
-    public IActionResult Get()
+    [HttpGet]
+    [Authorize]
+    public IActionResult Get() // endpoint for getting bikes with their owner
     {
-        return Ok(_dbContext
+        return Ok(_dbContext.Bikes.Include(b => b.Owner).ToList());
+    }
+
+    [HttpGet("{id}")]
+    // [Authorize]
+    public IActionResult GetById(int id)// endpoint for getting a bike by its Id with its workorders
+    {
+        Bike bike = _dbContext
             .Bikes
-            .Select(b => new BikeDTO
-            {
-                Id = b.Id,
-                Brand = b.Brand,
-                Color = b.Color,
-                BikeTypeId = b.BikeTypeId,
-                OwnerId = b.OwnerId
-            })
-            .ToList());
+            .Include(b => b.Owner)
+            .Include(b => b.BikeType)
+            .Include(b => b.WorkOrders)
+            .SingleOrDefault(b => b.Id == id);
+
+        if (bike == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(bike);
+    }
+
+
+    [HttpGet("inventory")]
+    [Authorize]
+    public IActionResult Inventory()// endpoint for getting a count of all bikes in the garage
+    {
+        int inventory = _dbContext
+        .Bikes
+        .Where(b => b.WorkOrders.Any(wo => wo.DateCompleted == null))
+        .Count();
+
+        return Ok(inventory);
     }
 
 }
